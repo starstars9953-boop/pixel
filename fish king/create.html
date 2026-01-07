@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创作 - 像素图生成器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="min-h-screen bg-slate-100 py-6">
+        <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-md border border-slate-200 px-6 py-5 space-y-4">
+            <!-- 顶部：返回 + 标题 -->
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 relative">
+                <a href="index.html" class="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                    <span class="text-lg">←</span>
+                    <span>返回首页</span>
+                </a>
+                <h1 class="text-lg font-semibold text-slate-900 absolute left-1/2 transform -translate-x-1/2">创作像素图</h1>
+                <div class="w-20"></div> <!-- 占位，保持平衡 -->
+        </div>
+
+            <!-- 主体：左设置 / 右上传 + 预览 -->
+            <div class="mt-2 grid grid-cols-12 gap-6 items-start">
+                <!-- 左侧：参数设置 -->
+                <div class="col-span-12 md:col-span-4 space-y-4">
+                    <div class="settings-section bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                        <h2 class="text-sm font-semibold text-slate-800 mb-3">参数设置</h2>
+                        
+                        <!-- 色板选择 -->
+                        <div class="setting-item mb-3">
+                            <label for="brand" class="block text-xs font-medium text-slate-600 mb-1.5">选择色板</label>
+                            <select id="brand"
+                                    class="mt-0 block w-full rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                <option value="mard" selected>拼豆 - MARD</option>
+                </select>
+            </div>
+
+            <!-- 画板尺寸 -->
+            <div class="setting-item">
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">画板尺寸</label>
+                            <div class="radio-group flex flex-row flex-wrap gap-4">
+                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input type="radio" name="size" value="52" checked class="h-3.5 w-3.5 text-blue-600 border-slate-300">
+                                    <span>52 × 52</span>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input type="radio" name="size" value="104" class="h-3.5 w-3.5 text-blue-600 border-slate-300">
+                                    <span>104 × 104</span>
+                    </label>
+                                <label style="display: none;" class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input type="radio" name="size" value="custom" class="h-3.5 w-3.5 text-blue-600 border-slate-300">
+                                    <span>自定义尺寸</span>
+                    </label>
+                </div>
+
+                            <!-- 自定义尺寸输入 -->
+                            <div id="customSizeInputs" class="custom-size-inputs mt-2 hidden">
+                                <label for="customWidth" class="mr-1 text-xs text-slate-600">宽度</label>
+                                <input type="number" id="customWidth" min="1" max="200" value="52"
+                                       class="w-20 rounded-md border border-slate-300 px-2 py-1 text-sm mr-3">
+                                <label for="customHeight" class="mr-1 text-xs text-slate-600">高度</label>
+                                <input type="number" id="customHeight" min="1" max="200" value="52"
+                                       class="w-20 rounded-md border border-slate-300 px-2 py-1 text-sm">
+            </div>
+            </div>
+        </div>
+
+                </div>
+
+                <!-- 右侧：上传 + 预览 -->
+                <div class="col-span-12 md:col-span-8 space-y-4">
+        <!-- 图片上传区域 -->
+        <div class="upload-section">
+                        <h2 class="text-sm font-semibold text-slate-800 mb-2">上传图片</h2>
+                        <div class="upload-area border-2 border-dashed border-slate-300 rounded-lg px-6 py-8 text-center bg-slate-50 hover:border-blue-500 hover:bg-slate-100 transition-colors"
+                             id="uploadArea">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                            <p class="text-sm text-slate-500 mb-3">点击或拖拽图片到此处</p>
+                            <button type="button"
+                                    class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                                    id="selectImageBtn">
+                                选择图片
+                            </button>
+                        </div>
+                        <!-- 预览出现后，用这个小按钮代替上传框 -->
+                        <button type="button"
+                                id="reselectImageBtn"
+                                class="mt-2 inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 hidden">
+                            重新选图
+                        </button>
+            </div>
+
+            <!-- 图片预览和调整 -->
+                    <div id="imagePreviewSection" class="image-preview-section mt-2 hidden">
+                        <div class="preview-container relative mx-auto border border-slate-200 rounded-lg bg-white">
+                    <canvas id="previewCanvas"></canvas>
+                            <div class="image-overlay pointer-events-none absolute inset-0">
+                        <canvas id="gridCanvas"></canvas>
+                    </div>
+                </div>
+                
+                        <div class="image-controls mt-3 max-w-md mx-auto">
+                            <div class="control-item flex items-center gap-3">
+                                <label for="imageScale" class="text-xs font-medium text-slate-600 w-12 text-right">缩放</label>
+                                <input type="range" id="imageScale" min="0.1" max="2" step="0.1" value="1"
+                                       class="flex-1 accent-blue-600">
+                                <span id="scaleValue" class="w-12 text-right text-xs text-slate-600">100%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成按钮：放在上传/预览下方 -->
+                    <div class="action-section mt-4">
+                        <button id="generateBtn"
+                                class="w-full inline-flex justify-center items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                disabled>
+                            生成图纸
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="colorPalette.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+

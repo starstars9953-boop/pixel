@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成结果 - 像素图生成器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="min-h-screen bg-slate-100 py-6">
+        <div class="mx-auto max-w-6xl bg-white shadow-md rounded-xl px-6 py-5 space-y-4 border border-slate-200">
+            <!-- 顶部栏：返回 + 标题（居中） -->
+            <div class="border-b border-slate-200 pb-3">
+                <div class="relative flex items-center justify-between">
+                    <a href="create.html" id="backToCreate" class="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                        <span class="text-lg">←</span>
+                        <span>返回创作</span>
+                    </a>
+                    <h1 class="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-slate-900">
+                        生成结果
+                    </h1>
+                    <div class="w-20"></div>
+                </div>
+            </div>
+
+            <!-- 编辑工具栏（默认隐藏，编辑模式下显示） -->
+            <div class="edit-toolbar flex items-center gap-4 px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg" id="editToolbar">
+                <!-- 工具组：橡皮擦 / 取色器 -->
+                <div class="edit-tool-group flex items-center gap-2 pr-3 border-r border-slate-200">
+                    <button class="tool-btn inline-flex items-center rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100" id="toolEraserBtn">
+                        橡皮擦
+                    </button>
+                    <button class="tool-btn inline-flex items-center rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100" id="toolPickerBtn">
+                        取色器
+                    </button>
+                </div>
+
+                <!-- 当前颜色 -->
+                <div class="edit-tool-group flex items-center gap-2 pr-3 border-r border-slate-200">
+                    <span class="text-xs text-slate-500">当前颜色</span>
+                    <div class="edit-current-color w-8 h-8 rounded border-2 border-slate-700" id="editCurrentColor"></div>
+                </div>
+
+                <!-- 色板 -->
+                <div class="edit-tool-group flex items-center gap-2 pr-3 border-r border-slate-200">
+                    <span class="text-xs text-slate-500 whitespace-nowrap">色板</span>
+                    <div class="edit-color-palette flex flex-wrap gap-1 max-w-xs max-h-28 overflow-y-auto rounded bg-slate-100 px-2 py-1" id="editColorPalette"></div>
+                </div>
+
+                <!-- 缩放 -->
+                <div class="edit-tool-group flex items-center gap-2 pr-3 border-r border-slate-200">
+                    <span class="text-xs text-slate-500">缩放</span>
+                    <button class="zoom-btn inline-flex w-7 h-7 items-center justify-center rounded border border-slate-300 bg-white text-sm hover:bg-slate-100" id="editZoomOutBtn">-</button>
+                    <span class="zoom-value text-xs text-slate-600 w-12 text-center" id="editZoomValue">100%</span>
+                    <button class="zoom-btn inline-flex w-7 h-7 items-center justify-center rounded border border-slate-300 bg-white text-sm hover:bg-slate-100" id="editZoomInBtn">+</button>
+                </div>
+
+                <!-- 撤销 / 重做 -->
+                <div class="edit-tool-group flex items-center gap-2">
+                    <button class="tool-btn inline-flex items-center rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100" id="editUndoBtn">
+                        撤销
+                    </button>
+                    <button class="tool-btn inline-flex items-center rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100" id="editRedoBtn">
+                        重做
+                    </button>
+                </div>
+            </div>
+
+            <!-- 主体区域：左侧图纸 / 右侧颜色列表 -->
+            <div class="result-section mt-2">
+                <div class="grid grid-cols-12 gap-6 items-start">
+                    <!-- 图纸区域 -->
+                    <div class="col-span-12 lg:col-span-8">
+                        <div class="result-display-container relative w-full bg-slate-50 rounded-lg border border-slate-200 overflow-visible">
+                            <div class="result-image-area relative w-full">
+                                <canvas id="resultCanvas"></canvas>
+                                <div class="result-image-overlay pointer-events-none absolute inset-0">
+                                    <canvas id="resultGridCanvas"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 使用颜色列表 -->
+                    <div class="col-span-12 lg:col-span-4">
+                        <div class="result-color-list-area bg-slate-50 rounded-lg border border-slate-200 mt-0">
+                            <h3 class="text-sm font-semibold text-slate-700 mb-3 text-left">使用颜色</h3>
+                            <div id="colorList" class="color-list flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部操作按钮 -->
+                <div class="result-actions mt-4 flex flex-wrap justify-end gap-3 pt-3 border-t border-slate-200">
+                    <button id="saveBtn" class="btn-secondary inline-flex items-center rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900">
+                        保存为新图纸
+                    </button>
+                    <button id="downloadBtn" class="btn-secondary inline-flex items-center rounded-md bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800">
+                        下载图片
+                    </button>
+                    <button id="newArtBtn" class="btn-secondary inline-flex items-center rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
+                        创作新图纸
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="colorPalette.js"></script>
+    <script src="result.js"></script>
+</body>
+</html>
+
