@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提取色号颜色工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100">
+    <div class="max-w-6xl mx-auto py-6 px-4">
+        <div class="bg-white rounded-2xl shadow-md border border-slate-200 px-6 py-5 space-y-5">
+            <!-- 标题 & 说明 -->
+            <div class="space-y-2 border-b border-slate-200 pb-3">
+                <h1 class="text-xl font-semibold text-slate-900">拼豆色号颜色提取工具</h1>
+                <p class="text-sm text-slate-500">
+                    从色卡图片中采样颜色并生成可直接粘贴到
+                    <code class="font-mono bg-slate-100 px-1 rounded">colorPalette.js</code> 的数据。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-12 gap-6">
+                <!-- 左侧：说明 + 上传 + 图片 -->
+                <div class="col-span-12 lg:col-span-7 space-y-4">
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700">
+                        <h3 class="font-medium text-slate-800 mb-2 text-sm">使用说明</h3>
+                        <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed text-slate-600">
+                            <li>上传色号表图片</li>
+                            <li>在图片上点击色块采样颜色</li>
+                            <li>输入色号（如 <code class="font-mono">B3</code>）并点击「添加颜色」</li>
+                            <li>重复采样直至录入所有色号（目标 264 个）</li>
+                            <li>点击「复制数据」，粘贴到 <code class="font-mono">colorPalette.js</code></li>
+                        </ol>
+                    </div>
+
+                    <div class="upload-area border-2 border-dashed border-slate-300 rounded-lg px-6 py-6 text-center bg-slate-50">
+                        <input type="file" id="imageInput" accept="image/*" class="block mx-auto text-sm text-slate-600">
+                        <p class="mt-2 text-sm text-slate-600">上传色号表图片（建议高分辨率）</p>
+                    </div>
+
+                    <div id="imageContainer" class="flex flex-wrap gap-4"></div>
+                </div>
+
+                <!-- 右侧：采样颜色 + 输出 -->
+                <div class="col-span-12 lg:col-span-5 space-y-4">
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                        <h3 class="text-sm font-medium text-slate-800">当前选中颜色</h3>
+                        <div class="flex items-center gap-4">
+                            <div id="colorPreview" class="w-24 h-24 border-2 border-slate-700 rounded-md bg-white"></div>
+                            <div class="space-y-2 text-sm">
+                                <p class="text-xs text-slate-600">RGB：
+                                    <span id="rgbValue" class="font-mono text-slate-900">-, -, -</span>
+                                </p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-slate-600">色号</span>
+                                    <input id="colorCodeInput" placeholder="如：B3"
+                                           class="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm">
+                                </div>
+                                <button onclick="addColor()"
+                                        class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                                    添加颜色
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="output bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-medium text-slate-800">
+                                已提取颜色（<span id="colorCount" class="font-mono">0</span> / 264）
+                            </h3>
+                            <div class="flex gap-2">
+                                <button onclick="copyData()"
+                                        class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                                    复制数据
+                                </button>
+                                <button onclick="clearData()"
+                                        class="inline-flex items-center rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50">
+                                    清空
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="outputData" readonly
+                                  class="mt-2 w-full h-72 rounded-md border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let imageCanvas = null;
+        let imageCtx = null;
+        let currentColor = null;
+        let colorData = [];
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const container = document.getElementById('imageContainer');
+                        container.innerHTML = '<canvas id="imageCanvas"></canvas>';
+                        
+                        imageCanvas = document.getElementById('imageCanvas');
+                        imageCtx = imageCanvas.getContext('2d');
+                        imageCanvas.width = img.width;
+                        imageCanvas.height = img.height;
+                        imageCtx.drawImage(img, 0, 0);
+                        
+                        imageCanvas.addEventListener('click', function(e) {
+                            const rect = imageCanvas.getBoundingClientRect();
+                            const x = Math.floor((e.clientX - rect.left) * (imageCanvas.width / rect.width));
+                            const y = Math.floor((e.clientY - rect.top) * (imageCanvas.height / rect.height));
+                            
+                            // 取3x3区域的平均值，更准确
+                            const sampleSize = 3;
+                            const sampleData = imageCtx.getImageData(
+                                Math.max(0, x - Math.floor(sampleSize/2)), 
+                                Math.max(0, y - Math.floor(sampleSize/2)), 
+                                sampleSize, 
+                                sampleSize
+                            );
+                            
+                            let rSum = 0, gSum = 0, bSum = 0, count = 0;
+                            for (let i = 0; i < sampleData.data.length; i += 4) {
+                                rSum += sampleData.data[i];
+                                gSum += sampleData.data[i + 1];
+                                bSum += sampleData.data[i + 2];
+                                count++;
+                            }
+                            
+                            const r = Math.round(rSum / count);
+                            const g = Math.round(gSum / count);
+                            const b = Math.round(bSum / count);
+                            currentColor = { r, g, b };
+                            
+                            document.getElementById('colorPreview').style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+                            document.getElementById('rgbValue').textContent = `${r}, ${g}, ${b}`;
+                        });
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function addColor() {
+            const code = document.getElementById('colorCodeInput').value.trim();
+            if (!code) {
+                alert('请输入色号代码');
+                return;
+            }
+            if (!currentColor) {
+                alert('请先点击图片选择颜色');
+                return;
+            }
+            
+            const codeUpper = code.toUpperCase();
+            // 检查是否已存在该色号
+            const exists = colorData.find(c => c.code === codeUpper);
+            if (exists) {
+                if (!confirm(`色号 ${codeUpper} 已存在，是否替换？`)) {
+                    return;
+                }
+                // 移除旧的
+                colorData = colorData.filter(c => c.code !== codeUpper);
+            }
+            
+            colorData.push({
+                code: codeUpper,
+                rgb: [currentColor.r, currentColor.g, currentColor.b]
+            });
+            
+            updateOutput();
+            document.getElementById('colorCodeInput').value = '';
+            document.getElementById('colorCodeInput').focus();
+        }
+
+        function updateOutput() {
+            // 按色号排序
+            const sortedData = [...colorData].sort((a, b) => a.code.localeCompare(b.code));
+            
+            const output = sortedData.map(c => 
+                `    { code: '${c.code}', rgb: [${c.rgb[0]}, ${c.rgb[1]}, ${c.rgb[2]}] },`
+            ).join('\n');
+            
+            document.getElementById('outputData').value = `const MARD_COLOR_PALETTE = [\n${output}\n];`;
+            document.getElementById('colorCount').textContent = colorData.length;
+        }
+
+        function copyData() {
+            const textarea = document.getElementById('outputData');
+            textarea.select();
+            document.execCommand('copy');
+            
+            const count = colorData.length;
+            if (count < 264) {
+                alert(`数据已复制到剪贴板！\n当前已提取 ${count} 个颜色，还需要 ${264 - count} 个。`);
+            } else {
+                alert('数据已复制到剪贴板！\n已提取完整的264个颜色！');
+            }
+        }
+
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？')) {
+                colorData = [];
+                updateOutput();
+            }
+        }
+    </script>
+</body>
+</html>
+
